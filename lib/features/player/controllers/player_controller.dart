@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:player_plus_plus/features/player/controllers/music_player_state.dart';
+import 'package:player_plus_plus/features/songs/models/song.dart';
 import 'package:riverpod/riverpod.dart';
+import 'music_player_state.dart';
 
 class PlayerController extends Notifier<MusicPlayerState> {
   late final AudioPlayer _player;
@@ -39,6 +42,22 @@ class PlayerController extends Notifier<MusicPlayerState> {
     });
     
     return const MusicPlayerState();
+  }
+
+  Future<void> playSong(Song song) async {
+    final file = File(song.path);
+    if (!await file.exists()) return;
+
+    try {
+      await _player.play(DeviceFileSource(song.path));
+      state = state.copyWith(
+        currentSong: song,
+        position: 0,
+        isPlaying: true,
+      );
+    } catch (e) {
+      developer.log('Error playing file: $e');
+    }
   }
 
   Future<void> togglePlayPause() async {

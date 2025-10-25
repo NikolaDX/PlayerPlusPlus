@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
+import 'package:metadata_god/metadata_god.dart';
 import 'package:path/path.dart' as p;
+import 'package:player_plus_plus/features/songs/models/song.dart';
 
 const List<String> commonAudioExtensions = [
   'mp3', 'flac', 'wav', 'aiff', 'aif', 'm4a', 'aac', 
@@ -13,7 +16,7 @@ class FileService {
     final Directory rootDir = Directory(rootPath);
 
     if (!await rootDir.exists()) {
-      print('Error: Directory not found at $rootPath');
+      developer.log('Error: Directory not found at $rootPath');
       return audioFiles;
     }
 
@@ -35,13 +38,23 @@ class FileService {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
       if (selectedDirectory != null) {
-        print('Starting scan in: $selectedDirectory');
+        developer.log('Starting scan in: $selectedDirectory');
         List<File> allAudio = await scanAudioFilesRecursively(selectedDirectory);
-        print('Found ${allAudio.length} audio files.');
+        developer.log('Found ${allAudio.length} audio files.');
         return allAudio;
       } else {
-        print('Directory scan cancelled.');
+        developer.log('Directory scan cancelled.');
         return [];
       }
+  }
+
+  Future<List<Song>> filesToSongs(List<File> files) async {
+    final List<Song> songs = [];
+    for (var file in files) {
+      final metadata = await MetadataGod.readMetadata(file: file.path);
+      final song = Song.buildFromMetadata(file.path, metadata);
+      songs.add(song);
+    }
+    return songs;
   }
 }

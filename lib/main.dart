@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:metadata_god/metadata_god.dart';
-import 'package:player_plus_plus/features/files/data/file_service.dart';
-import 'package:player_plus_plus/features/player/data/player_providers.dart';
-import 'package:player_plus_plus/screens/albums/album_screen.dart';
+import 'package:player_plus_plus/features/files/services/file_service.dart';
+import 'package:player_plus_plus/features/player/widgets/mini_player.dart';
+import 'package:player_plus_plus/features/songs/models/song.dart';
+import 'package:player_plus_plus/features/songs/widgets/songs_list.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,49 +20,44 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  List<String> albums = [];
+  List<Song> songs = [];
 
   @override
   Widget build(BuildContext context) {
-    final playerState = ref.watch(playerControllerProvider);
-    final player = ref.read(playerControllerProvider.notifier);
-
     return MaterialApp(
       home: Scaffold(
-        body: Column(
+        body: Stack(
           children: [
-            ElevatedButton(
-              onPressed: () async {
-                final files = await FileService().selectDirectoryAndScan();
-                setState(() {
-                  albums = files.map((f) => f.path.toString()).toList();
-                });
-              },
-              child: const Text('Scan directory'),
-            ),
-
-            Expanded(child: AlbumScreen(albums: albums)),
-
-            Slider(
-              value: playerState.position.clamp(0, playerState.duration),
-              max: playerState.duration > 0 ? playerState.duration : 1,
-              onChanged: (value) => player.seek(value),
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Column(
               children: [
-                IconButton(
-                  icon: Icon(
-                    playerState.isPlaying ? Icons.pause : Icons.play_arrow,
-                  ),
-                  onPressed: player.togglePlayPause,
+                ElevatedButton(
+                  onPressed: () async {
+                    final files = await FileService().selectDirectoryAndScan();
+                    final newSongs = await FileService().filesToSongs(files);
+                    if (newSongs.isNotEmpty) {
+                      setState(() {
+                        songs = newSongs;
+                      });
+                    }
+                  },
+                  child: const Text('Scan directory'),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.stop),
-                  onPressed: player.stop,
+                Expanded(
+                  child: SongsList(songs: songs),
                 ),
               ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 20,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: const MiniPlayer(),
+                ),
+              ),
             ),
           ],
         ),
